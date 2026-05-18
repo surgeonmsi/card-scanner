@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="명함 스캐너">
+<title>명함 스캐너</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #F7F6F2;
+    --surface: #FFFFFF;
+    --border: #E5E3DC;
+    --border-med: #D0CEC5;
+    --text: #1A1917;
+    --text-sub: #6B6963;
+    --text-hint: #A8A49E;
+    --accent: #1A1917;
+    --accent-bg: #1A1917;
+    --accent-fg: #FFFFFF;
+    --green: #2D6A4F;
+    --green-bg: #EAF4EE;
+    --red: #C0392B;
+    --radius: 14px;
+    --radius-sm: 10px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111110;
+      --surface: #1C1C1A;
+      --border: #2A2A27;
+      --border-med: #3A3A36;
+      --text: #F0EDE6;
+      --text-sub: #8A8880;
+      --text-hint: #4A4A46;
+      --accent: #F0EDE6;
+      --accent-bg: #F0EDE6;
+      --accent-fg: #111110;
+      --green: #4CAF7D;
+      --green-bg: #0D2318;
+      --red: #E57373;
+    }
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    font-family: -apple-system, 'Helvetica Neue', sans-serif;
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  #app {
+    min-height: 100vh;
+    max-width: 430px;
+    margin: 0 auto;
+    padding-bottom: 40px;
+  }
+
+  /* Header */
+  .header {
+    padding: 56px 20px 20px;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-icon {
+    width: 42px; height: 42px;
+    background: var(--accent-bg);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  .header p {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-top: 2px;
+  }
+
+  /* Steps */
+  .steps {
+    padding: 20px 20px 0;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-hint);
+    font-weight: 500;
+  }
+  .step.active { color: var(--text); }
+  .step.done { color: var(--green); }
+  .step-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .step.done .step-num {
+    background: var(--green);
+    border-color: var(--green);
+    color: white;
+    font-size: 13px;
+  }
+  .step-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Section */
+  .section { padding: 16px 20px; }
+
+  /* Instruction card */
+  .instruction-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .instruction-card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--text);
+  }
+  .step-list { list-style: none; }
+  .step-list li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 5px 0;
+    font-size: 13px;
+    color: var(--text-sub);
+    line-height: 1.5;
+  }
+  .step-list li .num {
+    width: 20px; height: 20px;
+    background: var(--bg);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Paste area */
+  .paste-area {
+    width: 100%;
+    min-height: 140px;
+    padding: 14px;
+    background: var(--surface);
+    border: 1.5px dashed var(--border-med);
+    border-radius: var(--radius);
+    font-size: 14px;
+    color: var(--text);
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+    line-height: 1.6;
+    transition: border-color 0.2s;
+  }
+  .paste-area:focus { border-color: var(--accent); }
+  .paste-area::placeholder { color: var(--text-hint); }
+
+  .paste-hint {
+    font-size: 12px;
+    color: var(--text-hint);
+    margin-top: 8px;
+    text-align: center;
+  }
+
+  /* Buttons */
+  .btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: var(--radius);
+    border: none;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: -0.2px;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary {
+    background: var(--accent-bg);
+    color: var(--accent-fg);
+    margin-top: 12px;
+  }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border-med);
+    margin-top: 8px;
+  }
+  .btn-save {
+    background: var(--green-bg);
+    color: var(--green);
+    border: 1px solid var(--green);
+    margin-top: 8px;
+  }
+
+  /* Result card */
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg);
+  }
+  .avatar {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: var(--accent-bg);
+    color: var(--accent-fg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    flex-shrink: 0;
+    letter-spacing: -0.5px;
+  }
+  .card-name {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+  .card-sub {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-top: 2px;
+  }
+
+  .field-list { padding: 4px 0; }
+  .field-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .field-item:last-child { border-bottom: none; }
+  .field-icon {
+    width: 32px; height: 32px;
+    background: var(--bg);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .field-body { flex: 1; min-width: 0; }
+  .field-label {
+    font-size: 11px;
+    color: var(--text-hint);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px;
+  }
+  .field-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    color: var(--text);
+    font-family: inherit;
+    padding: 0;
+  }
+  .field-input:focus { color: var(--green); }
+
+  /* Confidence badge */
+  .confidence {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-weight: 500;
+    margin-top: 8px;
+  }
+  .confidence.high { background: var(--green-bg); color: var(--green); }
+  .confidence.low { background: #FEF3C7; color: #92400E; }
+  @media (prefers-color-scheme: dark) {
+    .confidence.low { background: #2D1E00; color: #D97706; }
+  }
+
+  /* History */
+  .history-section { padding: 0 20px 20px; }
+  .section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-hint);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+  }
+  .history-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .history-item:active { background: var(--bg); }
+  .history-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-sub);
+    flex-shrink: 0;
+  }
+  .history-info { flex: 1; min-width: 0; }
+  .history-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .history-org { font-size: 12px; color: var(--text-sub); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .history-date { font-size: 11px; color: var(--text-hint); flex-shrink: 0; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--text);
+    color: var(--bg);
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+    z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+  }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--text-hint);
+    font-size: 13px;
+  }
+  .empty-icon { font-size: 36px; margin-bottom: 8px; }
+
+  /* Hidden */
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="header">
+    <div class="header-top">
+      <div class="header-icon">🪪</div>
+      <div>
+        <h1>명함 스캐너</h1>
+        <p>Live Text로 텍스트 복사 후 붙여넣기</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Steps indicator -->
+  <div class="steps" id="steps-bar">
+    <div class="step active" id="step1">
+      <div class="step-num">1</div>
+      <span>텍스트 입력</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step2">
+      <div class="step-num">2</div>
+      <span>정보 확인</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step3">
+      <div class="step-num">3</div>
+      <span>연락처 저장</span>
+    </div>
+  </div>
+
+  <!-- Step 1: Input -->
+  <div id="screen-input" class="section">
+    <div class="instruction-card">
+      <h3>📸 사용 방법</h3>
+      <ul class="step-list">
+        <li><div class="num">1</div><span>카메라 앱으로 명함 촬영</span></li>
+        <li><div class="num">2</div><span>사진 열기 → 텍스트 길게 누르기 → <strong>전체 선택</strong> → <strong>복사</strong></span></li>
+        <li><div class="num">3</div><span>아래 칸에 붙여넣기 후 분석</span></li>
+      </ul>
+    </div>
+
+    <textarea
+      class="paste-area"
+      id="paste-input"
+      placeholder="여기에 명함 텍스트를 붙여넣으세요...
+
+예시:
+홍길동
+마케팅팀 부장
+(주)한국기업
+010-1234-5678
+hong@company.co.kr
+서울시 강남구 테헤란로 123"
+    ></textarea>
+    <p class="paste-hint">📋 Live Text로 복사한 텍스트를 붙여넣으세요</p>
+
+    <button class="btn btn-primary" id="parse-btn" disabled>
+      ✨ 자동 분석하기
+    </button>
+  </div>
+
+  <!-- Step 2: Result -->
+  <div id="screen-result" class="section hidden">
+    <div class="result-card">
+      <div class="card-header">
+        <div class="avatar" id="res-avatar">?</div>
+        <div>
+          <div class="card-name" id="res-name">—</div>
+          <div class="card-sub" id="res-sub">—</div>
+        </div>
+      </div>
+      <div class="field-list">
+        <div class="field-item">
+          <div class="field-icon">🏢</div>
+          <div class="field-body">
+            <div class="field-label">소속</div>
+            <input class="field-input" id="f-company" placeholder="—" />
+          </div>
+        </div>
+        <div class="field-item">
+          <div class="field-icon">💼</div>
+          <div class="field-body">
+            <div class="field-label">직책</div>
+            <input class="field-input" id="f-position" placeholder="—" />
+          </div>
+        </div>
+        <div class="field-item">
+          <div class="field-icon">📞</div>
+          <div class="field-body">
+            <div class="field-label">전화 (직통)</div>
+            <input class="field-input" id="f-phone" placeholder="—" type="tel" />
+          </div>
+        </div>
+        <div class="field-item">
+          <div class="field-icon">📱</div>
+          <div class="field-body">
+            <div class="field-label">휴대폰</div>
+            <input class="field-input" id="f-mobile" placeholder="—" type="tel" />
+          </div>
+        </div>
+        <div class="field-item">
+          <div class="field-icon">📠</div>
+          <div class="field-body">
+            <div class="field-label">팩스</div>
+            <input class="field-input" id="f-fax" placeholder="—" type="tel" />
+          </div>
+        </div>
+        <div class="field-item">
+          <div class="field-icon">✉️</div>
+          <div class="field-body">
+            <div class="field-label">이메일</div>
+            <input class="field-input" id="f-email" placeholder="—" type="email" />
+          </div>
+        </div>
+        <div class="field-item">
+          <div class="field-icon">🌐</div>
+          <div class="field-body">
+            <div class="field-label">웹사이트</div>
+            <input class="field-input" id="f-website" placeholder="—" />
+          </div>
+        </div>
+        <div class="field-item">
+          <div class="field-icon">📍</div>
+          <div class="field-body">
+            <div class="field-label">주소</div>
+            <input class="field-input" id="f-address" placeholder="—" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="confidence-badge"></div>
+
+    <button class="btn btn-save" id="save-btn">
+      📇 연락처에 저장하기 (VCF)
+    </button>
+    <button class="btn btn-secondary" id="copy-btn">
+      📋 텍스트로 복사
+    </button>
+    <button class="btn btn-secondary" id="reset-btn">
+      🔄 다른 명함 스캔하기
+    </button>
+  </div>
+
+  <!-- History -->
+  <div class="history-section" id="history-section">
+    <div class="section-title">최근 저장 명함</div>
+    <div id="history-list"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Utils ──────────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+
+function showToast(msg, dur = 2200) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function getInitials(name) {
+  if (!name) return '?';
+  const clean = name.replace(/\(.*?\)/g, '').trim();
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].charAt(0);
+  return parts[0].charAt(0) + parts[parts.length - 1].charAt(0);
+}
+
+function setStep(n) {
+  [1,2,3].forEach(i => {
+    const el = $('step'+i);
+    el.classList.remove('active','done');
+    if (i < n) el.classList.add('done'), el.querySelector('.step-num').textContent = '✓';
+    else if (i === n) el.classList.add('active');
+    else el.querySelector('.step-num').textContent = i;
+  });
+}
+
+// ── Parser ─────────────────────────────────────────────────
+function parseCard(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const result = { name:'', company:'', position:'', phone:'', mobile:'', fax:'', email:'', website:'', address:'' };
+
+  // Email
+  const emailRe = /[\w.+\-]+@[\w.\-]+\.[a-zA-Z]{2,}/;
+  const emailLine = lines.find(l => emailRe.test(l));
+  if (emailLine) result.email = emailLine.match(emailRe)[0];
+
+  // Website
+  const webRe = /(?:https?:\/\/)?(?:www\.)?[\w\-]+\.[a-zA-Z]{2,}(?:\/[\S]*)?/i;
+  const webLine = lines.find(l => webRe.test(l) && !emailRe.test(l) && /\.[a-zA-Z]{2,}/.test(l));
+  if (webLine) {
+    const m = webLine.match(webRe);
+    if (m && !m[0].includes('@')) result.website = m[0];
+  }
+
+  // Phone numbers — Korean patterns
+  const phoneRe = /(?:(?:\+?82|0)[-.\s]?)?(?:0?[2-9]\d{1,2}[-.\s]?\d{3,4}[-.\s]?\d{4}|0?10[-.\s]?\d{4}[-.\s]?\d{4})/g;
+  const allPhones = [];
+  lines.forEach(l => {
+    const stripped = l.replace(/[^\d\-\+\.\s\(\)]/g, ' ').trim();
+    const matches = stripped.match(phoneRe);
+    if (matches) matches.forEach(m => {
+      const digits = m.replace(/\D/g,'');
+      if (digits.length >= 9) allPhones.push({ raw: m.trim(), label: l, digits });
+    });
+  });
+
+  allPhones.forEach(p => {
+    const lbl = p.label.toLowerCase();
+    const isMobile = /010/.test(p.digits) || /휴대|핸드폰|mobile|cell/i.test(lbl);
+    const isFax = /팩스|fax/i.test(lbl);
+    if (isFax && !result.fax) result.fax = p.raw;
+    else if (isMobile && !result.mobile) result.mobile = p.raw;
+    else if (!result.phone) result.phone = p.raw;
+  });
+
+  // Address — contains city keywords or 층/호/번지/로/길
+  const addrRe = /(?:서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주|시|구|동|로|길|번지|층|호)/;
+  const addrLine = lines.find(l => addrRe.test(l) && l.length > 5 && !phoneRe.test(l) && !emailRe.test(l));
+  if (addrLine) result.address = addrLine;
+
+  // Used lines set
+  const usedLines = new Set();
+  if (result.email) lines.forEach((l,i) => { if (l.includes(result.email)) usedLines.add(i); });
+  if (result.website) lines.forEach((l,i) => { if (l.includes(result.website.split('/')[0])) usedLines.add(i); });
+  if (result.address) lines.forEach((l,i) => { if (l === result.address) usedLines.add(i); });
+  lines.forEach((l,i) => { if (phoneRe.test(l.replace(/[^\d\-\+\.\s\(\)]/g,' '))) usedLines.add(i); });
+
+  const remaining = lines.filter((_,i) => !usedLines.has(i));
+
+  // Position keywords
+  const posKw = /대표|사장|부사장|전무|상무|이사|부장|차장|과장|대리|주임|사원|팀장|본부장|실장|센터장|소장|원장|교수|박사|선임|수석|책임|매니저|디렉터|director|manager|ceo|cto|cfo|coo|vp|president/i;
+  let posIdx = remaining.findIndex(l => posKw.test(l));
+  if (posIdx >= 0) { result.position = remaining[posIdx]; remaining.splice(posIdx, 1); }
+
+  // Company keywords
+  const coKw = /주식회사|\(주\)|\(사\)|유한회사|합자회사|재단|학교|대학|병원|의원|법인|inc\.|co\.,|corp\.|ltd\.|llc/i;
+  let coIdx = remaining.findIndex(l => coKw.test(l));
+  if (coIdx >= 0) { result.company = remaining[coIdx]; remaining.splice(coIdx, 1); }
+
+  // Name heuristic: shortest remaining line that looks like a name (1-6 chars Korean or 2-4 word English)
+  const nameRe = /^[가-힣]{1,6}$|^[A-Za-z]+(?: [A-Za-z]+){0,3}$/;
+  let nameIdx = remaining.findIndex(l => nameRe.test(l.trim()) && l.trim().length >= 2);
+  if (nameIdx >= 0) { result.name = remaining[nameIdx].trim(); remaining.splice(nameIdx, 1); }
+
+  // Company fallback: longest remaining non-address line
+  if (!result.company && remaining.length > 0) {
+    remaining.sort((a,b) => b.length - a.length);
+    result.company = remaining[0];
+    remaining.splice(0, 1);
+  }
+
+  // Confidence
+  const filled = Object.values(result).filter(v => v).length;
+  result._confidence = filled >= 4 ? 'high' : 'low';
+
+  return result;
+}
+
+// ── Render Result ──────────────────────────────────────────
+function renderResult(d) {
+  $('res-avatar').textContent = getInitials(d.name);
+  $('res-name').textContent = d.name || '이름 없음';
+  $('res-sub').textContent = [d.position, d.company].filter(Boolean).join(' · ') || '정보 없음';
+  $('f-company').value  = d.company  || '';
+  $('f-position').value = d.position || '';
+  $('f-phone').value    = d.phone    || '';
+  $('f-mobile').value   = d.mobile   || '';
+  $('f-fax').value      = d.fax      || '';
+  $('f-email').value    = d.email    || '';
+  $('f-website').value  = d.website  || '';
+  $('f-address').value  = d.address  || '';
+
+  const badge = $('confidence-badge');
+  if (d._confidence === 'high') {
+    badge.innerHTML = '<span class="confidence high">✓ 높은 정확도로 추출됨</span>';
+  } else {
+    badge.innerHTML = '<span class="confidence low">⚠️ 일부 항목을 직접 확인해주세요</span>';
+  }
+}
+
+// ── VCF Save ───────────────────────────────────────────────
+function saveVCF() {
+  const name     = $('res-name').textContent;
+  const company  = $('f-company').value;
+  const position = $('f-position').value;
+  const phone    = $('f-phone').value;
+  const mobile   = $('f-mobile').value;
+  const fax      = $('f-fax').value;
+  const email    = $('f-email').value;
+  const website  = $('f-website').value;
+  const address  = $('f-address').value;
+
+  const parts = name.trim().split(/\s+/);
+  const last  = parts[0] || '';
+  const first = parts.slice(1).join(' ') || '';
+
+  const vcf = [
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    `N:${last};${first};;;`,
+    `FN:${name}`,
+    company  ? `ORG:${company}`              : '',
+    position ? `TITLE:${position}`           : '',
+    phone    ? `TEL;TYPE=WORK,VOICE:${phone}`: '',
+    mobile   ? `TEL;TYPE=CELL:${mobile}`     : '',
+    fax      ? `TEL;TYPE=FAX:${fax}`         : '',
+    email    ? `EMAIL;TYPE=WORK:${email}`    : '',
+    website  ? `URL:${website}`              : '',
+    address  ? `ADR;TYPE=WORK:;;${address};;;;` : '',
+    'END:VCARD'
+  ].filter(Boolean).join('\r\n');
+
+  const blob = new Blob([vcf], { type: 'text/vcard;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `${name || 'contact'}.vcf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  // Save to history
+  const entry = {
+    name, company, position, phone, mobile, email,
+    date: new Date().toLocaleDateString('ko-KR', { month:'short', day:'numeric' })
+  };
+  let hist = JSON.parse(localStorage.getItem('bc_hist') || '[]');
+  hist.unshift(entry);
+  if (hist.length > 15) hist = hist.slice(0, 15);
+  localStorage.setItem('bc_hist', JSON.stringify(hist));
+  renderHistory();
+
+  setStep(3);
+  showToast('📇 연락처 파일 저장 완료! 파일을 열어 연락처 앱에 추가하세요.');
+}
+
+// ── History ────────────────────────────────────────────────
+function renderHistory() {
+  const hist = JSON.parse(localStorage.getItem('bc_hist') || '[]');
+  const sec  = $('history-section');
+  const list = $('history-list');
+  if (hist.length === 0) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  list.innerHTML = '';
+  hist.forEach(h => {
+    const el = document.createElement('div');
+    el.className = 'history-item';
+    el.innerHTML = `
+      <div class="history-avatar">${getInitials(h.name)}</div>
+      <div class="history-info">
+        <div class="history-name">${h.name || '이름 없음'}</div>
+        <div class="history-org">${[h.position, h.company].filter(Boolean).join(' · ') || '—'}</div>
+      </div>
+      <div class="history-date">${h.date || ''}</div>
+    `;
+    list.appendChild(el);
+  });
+}
+
+// ── Event Listeners ────────────────────────────────────────
+$('paste-input').addEventListener('input', function() {
+  $('parse-btn').disabled = this.value.trim().length < 3;
+});
+
+$('parse-btn').addEventListener('click', function() {
+  const text = $('paste-input').value.trim();
+  if (!text) return;
+  const data = parseCard(text);
+  renderResult(data);
+  $('screen-input').classList.add('hidden');
+  $('screen-result').classList.remove('hidden');
+  setStep(2);
+  window.scrollTo(0, 0);
+});
+
+$('save-btn').addEventListener('click', saveVCF);
+
+$('copy-btn').addEventListener('click', function() {
+  const lines = [
+    $('res-name').textContent,
+    $('f-company').value,
+    $('f-position').value,
+    $('f-phone').value,
+    $('f-mobile').value,
+    $('f-email').value,
+    $('f-website').value,
+    $('f-address').value,
+  ].filter(Boolean).join('\n');
+  navigator.clipboard.writeText(lines).then(() => showToast('📋 클립보드에 복사됐어요'));
+});
+
+$('reset-btn').addEventListener('click', function() {
+  $('paste-input').value = '';
+  $('parse-btn').disabled = true;
+  $('screen-result').classList.add('hidden');
+  $('screen-input').classList.remove('hidden');
+  setStep(1);
+  window.scrollTo(0, 0);
+});
+
+// ── Init ───────────────────────────────────────────────────
+setStep(1);
+renderHistory();
+</script>
+</body>
+</html>
