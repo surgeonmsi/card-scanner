@@ -475,7 +475,7 @@ hong@company.co.kr
       <div class="card-header">
         <div class="avatar" id="res-avatar">?</div>
         <div>
-          <div class="card-name" id="res-name">—</div>
+          <input class="card-name" id="res-name" value="—" style="border:none;outline:none;background:transparent;font-size:17px;font-weight:700;color:var(--text);letter-spacing:-0.3px;width:100%;font-family:inherit;" />
           <div class="card-sub" id="res-sub">—</div>
         </div>
       </div>
@@ -677,8 +677,11 @@ function parseCard(text) {
 // ── Render Result ──────────────────────────────────────────
 function renderResult(d) {
   $('res-avatar').textContent = getInitials(d.name);
-  $('res-name').textContent = d.name || '이름 없음';
+  $('res-name').value = d.name || '';
   $('res-sub').textContent = [d.position, d.company].filter(Boolean).join(' · ') || '정보 없음';
+  $('res-name').addEventListener('input', function() {
+    $('res-avatar').textContent = getInitials(this.value);
+  });
   $('f-company').value  = d.company  || '';
   $('f-position').value = d.position || '';
   $('f-phone').value    = d.phone    || '';
@@ -698,7 +701,7 @@ function renderResult(d) {
 
 // ── VCF Save ───────────────────────────────────────────────
 function saveVCF() {
-  const name     = $('res-name').textContent;
+  const name     = $('res-name').value;
   const company  = $('f-company').value;
   const position = $('f-position').value;
   const phone    = $('f-phone').value;
@@ -796,7 +799,7 @@ $('save-btn').addEventListener('click', saveVCF);
 
 $('copy-btn').addEventListener('click', function() {
   const lines = [
-    $('res-name').textContent,
+    $('res-name').value,
     $('f-company').value,
     $('f-position').value,
     $('f-phone').value,
